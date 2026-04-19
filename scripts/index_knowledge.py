@@ -1,7 +1,12 @@
 """Index knowledge base documents into Qdrant.
 
-Reads all .md files from data/knowledge/docs/, splits them by ## headers,
-embeds each chunk, and uploads to a Qdrant collection.
+Reads all .md files from each knowledge directory, splits them by ## headers,
+embeds each chunk, and uploads to separate Qdrant collections.
+
+Collections:
+  - fastapi_docs      <- data/knowledge/docs/
+  - troubleshooting   <- data/knowledge/troubleshooting/
+  - faq               <- data/knowledge/faq/
 """
 
 import sys
@@ -18,9 +23,13 @@ from app.config import settings
 from app.embeddings import SentenceTransformerProvider
 from app.schemas import ChunkPayload
 
-COLLECTION_NAME = "fastapi_docs"
 VECTOR_DIMENSION = 384
-DOCS_DIR = project_root / "data" / "knowledge" / "docs"
+
+COLLECTIONS = {
+    "fastapi_docs": project_root / "data" / "knowledge" / "docs",
+    "troubleshooting": project_root / "data" / "knowledge" / "troubleshooting",
+    "faq": project_root / "data" / "knowledge" / "faq",
+}
 
 
 def read_markdown_files(docs_dir: Path) -> list[dict[str, str]]:
@@ -29,7 +38,7 @@ def read_markdown_files(docs_dir: Path) -> list[dict[str, str]]:
     for md_file in sorted(docs_dir.glob("*.md")):
         content = md_file.read_text(encoding="utf-8")
         files.append({"filename": md_file.name, "content": content})
-        print(f"  Read: {md_file.name} ({len(content)} chars)")
+        print(f"    Read: {md_file.name} ({len(content)} chars)")
     return files
 
 
@@ -64,31 +73,51 @@ def split_by_headers(filename: str, content: str) -> list[ChunkPayload]:
     return chunks
 
 
-def recreate_collection(client: QdrantClient) -> None:
+def recreate_collection(client: QdrantClient, collection_name: str) -> None:
     """Delete collection if it exists and create a new one."""
     collections = [c.name for c in client.get_collections().collections]
-    if COLLECTION_NAME in collections:
-        client.delete_collection(COLLECTION_NAME)
-        print(f"  Deleted existing collection: {COLLECTION_NAME}")
+    if collection_name in collections:
+        client.delete_collection(collection_name)
+        print(f"    Deleted existing: {collection_name}")
 
     client.create_collection(
-        collection_name=COLLECTION_NAME,
+        collection_name=collection_name,
         vectors_config=VectorParams(
             size=VECTOR_DIMENSION,
             distance=Distance.COSINE,
         ),
     )
-    print(f"  Created collection: {COLLECTION_NAME}")
+    print(f"    Created: {collection_name}")
 
 
-def index_chunks(
+def index_collection(
     client: QdrantClient,
-    chunks: list[ChunkPayload],
+    collection_name: str,
+    docs_dir: Path,
     embedding_provider: SentenceTransformerProvider,
-) -> None:
-    """Embed chunks and upload to Qdrant."""
-    texts = [chunk.text for chunk in chunks]
-    print(f"  Embedding {len(texts)} chunks...")
+) -> int:
+    """Index a single collection. Returns number of indexed chunks."""
+    print(f"\n  [{collection_name}] from {docs_dir.relative_to(project_root)}")
+
+    if not docs_dir.exists():
+        print(f"    WARNING: Directory not found: {docs_dir}")
+        return 0
+
+    files = read_markdown_files(docs_dir)
+    if not files:
+        print(f"    WARNING: No .md files found")
+        return 0
+
+    all_chunks: list[ChunkPayload] = []
+    for file_info in files:
+        chunks = split_by_headers(file_info["filename"], file_info["content"])
+        all_chunks.extend(chunks)
+    print(f"    Total chunks: {len(all_chunks)}")
+
+    recreate_collection(client, collection_name)
+
+    texts = [chunk.text for chunk in all_chunks]
+    print(f"    Embedding {len(texts)} chunks...")
     vectors = embedding_provider.embed_texts(texts)
 
     points = [
@@ -97,52 +126,35 @@ def index_chunks(
             vector=vector,
             payload=chunk.model_dump(),
         )
-        for chunk, vector in zip(chunks, vectors)
+        for chunk, vector in zip(all_chunks, vectors)
     ]
 
-    client.upsert(collection_name=COLLECTION_NAME, points=points)
-    print(f"  Uploaded {len(points)} points to Qdrant")
+    client.upsert(collection_name=collection_name, points=points)
+    print(f"    Uploaded {len(points)} points")
+
+    return len(all_chunks)
 
 
 def main() -> None:
-    """Main indexing pipeline."""
+    """Main indexing pipeline for all knowledge bases."""
     print("=" * 60)
-    print("Knowledge Base Indexer")
+    print("Knowledge Base Indexer (Multi-Collection)")
     print("=" * 60)
 
-    print("\n[1/4] Reading markdown files...")
-    if not DOCS_DIR.exists():
-        print(f"ERROR: Docs directory not found: {DOCS_DIR}")
-        sys.exit(1)
-
-    files = read_markdown_files(DOCS_DIR)
-    if not files:
-        print("ERROR: No .md files found")
-        sys.exit(1)
-    print(f"  Total files: {len(files)}")
-
-    print("\n[2/4] Splitting into chunks by ## headers...")
-    all_chunks: list[ChunkPayload] = []
-    for file_info in files:
-        chunks = split_by_headers(file_info["filename"], file_info["content"])
-        print(f"  {file_info['filename']}: {len(chunks)} chunks")
-        all_chunks.extend(chunks)
-    print(f"  Total chunks: {len(all_chunks)}")
-
-    print("\n[3/4] Setting up Qdrant collection...")
     client = QdrantClient(path=settings.qdrant_path)
-    recreate_collection(client)
-
-    print("\n[4/4] Embedding and indexing...")
     embedding_provider = SentenceTransformerProvider()
-    index_chunks(client, all_chunks, embedding_provider)
 
-    collection_info = client.get_collection(COLLECTION_NAME)
+    total_chunks = 0
+    for collection_name, docs_dir in COLLECTIONS.items():
+        count = index_collection(client, collection_name, docs_dir, embedding_provider)
+        total_chunks += count
+
     print("\n" + "=" * 60)
     print("Indexing complete!")
-    print(f"  Collection: {COLLECTION_NAME}")
-    print(f"  Points: {collection_info.points_count}")
-    print(f"  Vector size: {collection_info.config.params.vectors.size}")
+    print(f"  Total chunks: {total_chunks}")
+    for collection_name in COLLECTIONS:
+        info = client.get_collection(collection_name)
+        print(f"  {collection_name}: {info.points_count} points")
     print("=" * 60)
 
 

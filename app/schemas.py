@@ -1,3 +1,7 @@
+from __future__ import annotations
+
+from typing import Literal
+
 from pydantic import BaseModel, Field
 
 
@@ -23,3 +27,14 @@ class RAGResponse(BaseModel):
     answer: str
     sources: list[str] = Field(description="Source filenames used for the answer")
     chunks_used: int = Field(ge=0)
+    route: "QueryRoute | None" = Field(default=None, description="Routing decision if routed")
+
+
+class QueryRoute(BaseModel):
+    """SGR Routing: classify which knowledge base to search."""
+
+    intent: Literal["docs", "troubleshooting", "faq"] = Field(
+        description="Which knowledge base is most relevant"
+    )
+    confidence: float = Field(ge=0.0, le=1.0)
+    reasoning: str = Field(description="Brief explanation of why this KB was chosen")
