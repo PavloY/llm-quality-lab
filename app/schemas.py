@@ -38,3 +38,22 @@ class QueryRoute(BaseModel):
     )
     confidence: float = Field(ge=0.0, le=1.0)
     reasoning: str = Field(description="Brief explanation of why this KB was chosen")
+
+
+class AgentStep(BaseModel):
+    """One step of the ReAct cycle."""
+
+    thought: str = Field(description="Agent's reasoning about what to do")
+    action: str = Field(description="Tool name to call")
+    action_input: dict = Field(default_factory=dict, description="Arguments for the tool")
+    observation: str | None = Field(default=None, description="Result from tool execution")
+
+
+class AgentResponse(BaseModel):
+    """Complete agent response with reasoning trace."""
+
+    steps: list[AgentStep] = Field(description="ReAct reasoning steps")
+    final_answer: str = Field(description="Final answer to the user")
+    sources: list[str] = Field(default_factory=list, description="Source documents used")
+    total_steps: int = Field(ge=0, description="Number of reasoning steps taken")
+    tools_used: list[str] = Field(default_factory=list, description="Tools that were called")
