@@ -15,3 +15,11 @@ class RetrievalResult(BaseModel):
     text: str
     source: str
     score: float = Field(ge=0.0, le=1.0)
+
+
+class RAGResponse(BaseModel):
+    """Complete response from the RAG pipeline."""
+
+    answer: str
+    sources: list[str] = Field(description="Source filenames used for the answer")
+    chunks_used: int = Field(ge=0)
