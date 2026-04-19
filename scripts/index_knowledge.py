@@ -19,6 +19,7 @@ from qdrant_client.models import Distance, PointStruct, VectorParams
 project_root = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(project_root))
 
+from app.chunking import split_by_headers
 from app.config import settings
 from app.embeddings import SentenceTransformerProvider
 from app.schemas import ChunkPayload
@@ -42,35 +43,6 @@ def read_markdown_files(docs_dir: Path) -> list[dict[str, str]]:
     return files
 
 
-def split_by_headers(filename: str, content: str) -> list[ChunkPayload]:
-    """Split markdown content by ## headers into typed chunks."""
-    chunks: list[ChunkPayload] = []
-    current_header = "Introduction"
-    current_lines: list[str] = []
-
-    for line in content.split("\n"):
-        if line.startswith("## "):
-            chunk_text = "\n".join(current_lines).strip()
-            if chunk_text:
-                chunks.append(ChunkPayload(
-                    text=chunk_text,
-                    source=filename,
-                    header=current_header,
-                ))
-            current_header = line.lstrip("# ").strip()
-            current_lines = [line]
-        else:
-            current_lines.append(line)
-
-    chunk_text = "\n".join(current_lines).strip()
-    if chunk_text:
-        chunks.append(ChunkPayload(
-            text=chunk_text,
-            source=filename,
-            header=current_header,
-        ))
-
-    return chunks
 
 
 def recreate_collection(client: QdrantClient, collection_name: str) -> None:
