@@ -30,8 +30,8 @@ jobs:
       - name: Lint with ruff
         run: ruff check .
 
-      - name: Run fast tests
-        run: pytest tests/unit/ tests/integration/ -v --tb=short --alluredir=allure-results
+      - name: Run fast tests (unit + integration + observability)
+        run: pytest tests/unit/ tests/integration/ tests/observability/ -v --tb=short --alluredir=allure-results
         continue-on-error: true
 
       - name: Install Allure
