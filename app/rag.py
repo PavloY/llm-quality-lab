@@ -3,7 +3,7 @@ from qdrant_client import QdrantClient
 from app.config import settings
 from app.embeddings import EmbeddingProvider
 from app.llm import LLMProvider
-from app.logging_config import get_logger
+from app.logging_config import get_logger, log_timing
 from app.router import QueryRouter
 from app.schemas import RAGResponse, RetrievalResult
 
@@ -42,27 +42,28 @@ class QdrantRetriever:
 
     def retrieve(self, query: str, top_k: int = DEFAULT_TOP_K) -> list[RetrievalResult]:
         """Search for the most relevant chunks given a natural language query."""
-        logger.info("Retriever: query='%s', collection='%s', top_k=%d", query, self._collection, top_k)
-        query_vector = self._embedding_provider.embed_text(query)
+        with log_timing(logger, "retriever_search", collection=self._collection, query=f"'{query}'"):
+            query_vector = self._embedding_provider.embed_text(query)
 
-        hits = self._client.search(
-            collection_name=self._collection,
-            query_vector=query_vector,
-            limit=top_k,
-        )
-
-        results = [
-            RetrievalResult(
-                text=hit.payload["text"],
-                source=hit.payload["source"],
-                score=hit.score,
+            hits = self._client.search(
+                collection_name=self._collection,
+                query_vector=query_vector,
+                limit=top_k,
             )
-            for hit in hits
-        ]
+
+            results = [
+                RetrievalResult(
+                    text=hit.payload["text"],
+                    source=hit.payload["source"],
+                    score=hit.score,
+                )
+                for hit in hits
+            ]
+
         if results:
-            logger.info("Retriever: found %d results, best score=%.4f from %s", len(results), results[0].score, results[0].source)
+            logger.info("retriever_found count=%d best_score=%.4f best_source=%s", len(results), results[0].score, results[0].source)
         else:
-            logger.warning("Retriever: no results found")
+            logger.warning("retriever_empty query='%s'", query)
         return results
 
 

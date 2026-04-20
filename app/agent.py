@@ -4,7 +4,7 @@ from openai import OpenAI
 
 from app.config import settings
 from app.llm import LLMProvider
-from app.logging_config import get_logger
+from app.logging_config import get_logger, log_timing
 from app.schemas import AgentResponse, AgentStep, RetrievalResult
 from app.tools import TOOLS_DESCRIPTION, ToolKit
 
@@ -37,7 +37,10 @@ class Agent:
 
     def query(self, question: str) -> AgentResponse:
         """Run the ReAct loop for a given question."""
-        logger.info("Agent: question='%s'", question)
+        import time
+
+        query_start = time.perf_counter()
+        logger.info("agent_start question='%s'", question)
         steps: list[AgentStep] = []
         tools_used: list[str] = []
         sources: list[str] = []
@@ -59,7 +62,8 @@ class Agent:
             message = response.choices[0].message
 
             if not message.tool_calls:
-                logger.info("Agent: final answer, %d steps, tools=%s", len(steps), list(set(tools_used)))
+                latency_ms = round((time.perf_counter() - query_start) * 1000, 1)
+                logger.info("agent_done steps=%d tools=%s latency_ms=%s", len(steps), list(set(tools_used)), latency_ms)
                 return AgentResponse(
                     steps=steps,
                     final_answer=message.content or "I couldn't generate an answer.",
@@ -78,8 +82,10 @@ class Agent:
                     tool_args = {}
 
                 if tool_name in self._tools:
-                    logger.info("Agent: calling %s(%s)", tool_name, tool_args)
+                    tool_start = time.perf_counter()
                     result = self._tools[tool_name](**tool_args)
+                    tool_ms = round((time.perf_counter() - tool_start) * 1000, 1)
+                    logger.info("tool_call tool='%s' latency_ms=%s", tool_name, tool_ms)
                     tools_used.append(tool_name)
                 else:
                     result = [
