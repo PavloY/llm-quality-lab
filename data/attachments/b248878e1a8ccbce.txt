@@ -1,2 +1,0 @@
-INFO     app.rag:logging_config.py:42 retriever_search latency_ms=11.5 collection=fastapi_docs query='FastAPI routing'
-INFO     app.rag:rag.py:64 retriever_found count=3 best_score=0.8948 best_source=routing.md

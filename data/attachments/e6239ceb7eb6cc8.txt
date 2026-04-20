@@ -1,0 +1,2 @@
+INFO     app.rag:logging_config.py:42 retriever_search latency_ms=11.8 collection=fastapi_docs query='error handling'
+INFO     app.rag:rag.py:64 retriever_found count=2 best_score=0.5301 best_source=error_handling.md

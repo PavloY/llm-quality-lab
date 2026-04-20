@@ -1,2 +1,0 @@
-INFO     sentence_transformers.SentenceTransformer:SentenceTransformer.py:210 Use pytorch device_name: cpu
-INFO     sentence_transformers.SentenceTransformer:SentenceTransformer.py:218 Load pretrained SentenceTransformer: all-MiniLM-L6-v2

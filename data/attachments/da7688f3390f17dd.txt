@@ -1,0 +1,1 @@
+INFO     tests:helpers.py:42   POST /query → 200 {'steps': [{'thought': 'I need to search the docs', 'action': 'search_docs', 'action_input': {'query': 'test'}, 'observation': 'Found some docs about testing'}], 'final_answer': 'Here is a test answer based on the docs.', 'sources': ['test_doc.md'], 'total_steps': 1, 'tools_used': ['search_docs']}

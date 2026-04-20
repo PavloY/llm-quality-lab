@@ -1,0 +1,11 @@
+INFO     app.rag:logging_config.py:42 retriever_search latency_ms=14.4 collection=fastapi_docs query='quantum physics black hole entropy'
+INFO     app.rag:rag.py:64 retriever_found count=3 best_score=0.0367 best_source=routing.md
+INFO     tests:helpers.py:21   Result 1: source=routing.md score=0.0367 text='## Query Parameters
+
+Any function parameter that is not part of the path is auto...'
+INFO     tests:helpers.py:21   Result 2: source=dependencies.md score=0.0236 text='## Class-Based Dependencies
+
+You can use classes as dependencies. FastAPI will i...'
+INFO     tests:helpers.py:21   Result 3: source=dependencies.md score=0.0082 text='## Nested Dependencies
+
+Dependencies can depend on other dependencies, forming a...'
