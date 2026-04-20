@@ -12,7 +12,7 @@ permissions:
 
 jobs:
   fast-tests:
-    name: "Unit + Integration Tests"
+    name: "Unit + Integration + Observability"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -30,7 +30,7 @@ jobs:
       - name: Lint with ruff
         run: ruff check .
 
-      - name: Run fast tests (unit + integration + observability)
+      - name: Run fast tests (46 tests, no LLM)
         run: pytest tests/unit/ tests/integration/ tests/observability/ -v --tb=short --alluredir=allure-results
         continue-on-error: true
 
@@ -38,6 +38,16 @@ jobs:
         run: |
           curl -sL https://github.com/allure-framework/allure2/releases/download/2.30.0/allure-2.30.0.tgz | tar -xz
           echo "$PWD/allure-2.30.0/bin" >> $GITHUB_PATH
+
+      - name: Get previous Allure history
+        if: always()
+        continue-on-error: true
+        run: |
+          git fetch origin gh-pages --depth=1 || true
+          if git show origin/gh-pages:history 2>/dev/null; then
+            git checkout origin/gh-pages -- history
+            mv history allure-results/history
+          fi
 
       - name: Generate Allure report
         if: always()
