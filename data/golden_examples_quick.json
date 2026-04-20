@@ -1,0 +1,42 @@
+[
+    {
+        "id": "docs_simple_01",
+        "question": "How do I add CORS middleware to my FastAPI application?",
+        "ground_truth": "To add CORS middleware, import CORSMiddleware from fastapi.middleware.cors and add it using app.add_middleware(CORSMiddleware, allow_origins=[...], allow_credentials=True, allow_methods=['*'], allow_headers=['*']). Key parameters are allow_origins (list of allowed origins), allow_credentials, allow_methods, and allow_headers.",
+        "expected_kb": "docs",
+        "category": "docs_simple",
+        "difficulty": "easy"
+    },
+    {
+        "id": "docs_complex_01",
+        "question": "How can I create a dependency that manages a database session lifecycle and use it with nested dependencies for authentication?",
+        "ground_truth": "Use a generator dependency with yield for the database session: def get_db(): db = SessionLocal(); try: yield db; finally: db.close(). The yield ensures the session is closed after the request. For nested dependencies, create get_current_user that depends on get_db: def get_current_user(db=Depends(get_db)). Dependencies can depend on other dependencies, forming a dependency tree that FastAPI resolves automatically.",
+        "expected_kb": "docs",
+        "category": "docs_complex",
+        "difficulty": "medium"
+    },
+    {
+        "id": "troubleshooting_01",
+        "question": "Why am I getting a 422 Unprocessable Entity error in my FastAPI app?",
+        "ground_truth": "422 means FastAPI received your request but the data failed Pydantic validation. Common causes: missing required fields, wrong data type (e.g., string instead of float), path parameter type mismatch, missing Content-Type application/json header, or sending form data instead of JSON (using data= instead of json= in requests). Read the error response detail field, especially the loc field which pinpoints the exact field and location of the error.",
+        "expected_kb": "troubleshooting",
+        "category": "troubleshooting",
+        "difficulty": "easy"
+    },
+    {
+        "id": "faq_01",
+        "question": "What is FastAPI and when should I use it instead of Flask or Django?",
+        "ground_truth": "FastAPI is a modern high-performance web framework for building APIs with Python based on type hints. Use FastAPI for REST APIs, microservices, and ML model serving. It is async-first, includes Pydantic validation, and generates OpenAPI docs automatically. Flask is better for simple prototypes. Django DRF is better for full-featured web applications with ORM, admin panel, and built-in auth. FastAPI is lighter and faster but requires choosing your own ORM and auth libraries.",
+        "expected_kb": "faq",
+        "category": "faq",
+        "difficulty": "easy"
+    },
+    {
+        "id": "cross_kb_01",
+        "question": "I added CORS middleware but I'm still getting CORS errors in the browser. What am I doing wrong?",
+        "ground_truth": "Check common mistakes from troubleshooting: adding middleware AFTER routes (must be before), using allow_origins=['*'] with allow_credentials=True (forbidden by CORS spec), forgetting OPTIONS method, browser caching preflight responses. Also from docs: middleware is executed in reverse order of how it's added, so CORS middleware should be added last (to wrap everything). Test with curl to verify headers: curl -X OPTIONS with Origin header and check for Access-Control-Allow-Origin in response.",
+        "expected_kb": "troubleshooting",
+        "category": "cross_kb",
+        "difficulty": "hard"
+    }
+]
