@@ -57,3 +57,8 @@ def assert_results_contain(results: list[RetrievalResult], keyword: str) -> None
     assert keyword.lower() in texts, (
         f"'{keyword}' not found in results. Sources: {[r.source for r in results]}"
     )
+
+
+def get_prompts_by_category(canary_prompts: list[dict], category: str) -> list[dict]:
+    """Filter canary prompts by category."""
+    return [p for p in canary_prompts if p["category"] == category]
