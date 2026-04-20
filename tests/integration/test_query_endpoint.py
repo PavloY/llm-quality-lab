@@ -13,8 +13,8 @@ class TestQueryEndpoint:
     @description("Response contains all AgentResponse fields with correct values")
     def test_api_03(self, client, mock_agent):
         response = client.post("/query", json={"question": "test"})
-
         data = response.json()
+
         assert "steps" in data
         assert "final_answer" in data
         assert "sources" in data

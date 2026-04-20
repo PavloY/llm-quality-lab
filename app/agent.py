@@ -4,8 +4,11 @@ from openai import OpenAI
 
 from app.config import settings
 from app.llm import LLMProvider
+from app.logging_config import get_logger
 from app.schemas import AgentResponse, AgentStep, RetrievalResult
 from app.tools import TOOLS_DESCRIPTION, ToolKit
+
+logger = get_logger(__name__)
 
 AGENT_SYSTEM_PROMPT = """You are a technical support agent for FastAPI documentation.
 You have access to tools to search knowledge bases.
@@ -34,6 +37,7 @@ class Agent:
 
     def query(self, question: str) -> AgentResponse:
         """Run the ReAct loop for a given question."""
+        logger.info("Agent: question='%s'", question)
         steps: list[AgentStep] = []
         tools_used: list[str] = []
         sources: list[str] = []
@@ -55,6 +59,7 @@ class Agent:
             message = response.choices[0].message
 
             if not message.tool_calls:
+                logger.info("Agent: final answer, %d steps, tools=%s", len(steps), list(set(tools_used)))
                 return AgentResponse(
                     steps=steps,
                     final_answer=message.content or "I couldn't generate an answer.",
@@ -73,6 +78,7 @@ class Agent:
                     tool_args = {}
 
                 if tool_name in self._tools:
+                    logger.info("Agent: calling %s(%s)", tool_name, tool_args)
                     result = self._tools[tool_name](**tool_args)
                     tools_used.append(tool_name)
                 else:

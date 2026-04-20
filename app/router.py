@@ -1,7 +1,10 @@
 import json
 
 from app.llm import LLMProvider
+from app.logging_config import get_logger
 from app.schemas import QueryRoute
+
+logger = get_logger(__name__)
 
 ROUTER_SYSTEM_PROMPT = """You are a query classifier. Classify the user's question into one of these categories:
 - "docs": questions about how FastAPI works, features, API reference, syntax, examples
@@ -25,6 +28,7 @@ class QueryRouter:
 
     def classify(self, question: str) -> QueryRoute:
         """Classify a question and return a structured route."""
+        logger.info("Router: classifying '%s'", question)
         response = self._llm.generate(
             prompt=question,
             system_prompt=ROUTER_SYSTEM_PROMPT,
@@ -33,8 +37,11 @@ class QueryRouter:
 
         try:
             data = json.loads(response)
-            return QueryRoute(**data)
+            route = QueryRoute(**data)
+            logger.info("Router: %s (confidence=%.2f, reason='%s')", route.intent, route.confidence, route.reasoning)
+            return route
         except (json.JSONDecodeError, Exception):
+            logger.warning("Router: classification failed, falling back to 'docs'")
             return QueryRoute(
                 intent="docs",
                 confidence=0.5,

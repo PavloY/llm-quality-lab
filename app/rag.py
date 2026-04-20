@@ -3,8 +3,11 @@ from qdrant_client import QdrantClient
 from app.config import settings
 from app.embeddings import EmbeddingProvider
 from app.llm import LLMProvider
+from app.logging_config import get_logger
 from app.router import QueryRouter
 from app.schemas import RAGResponse, RetrievalResult
+
+logger = get_logger(__name__)
 
 DEFAULT_COLLECTION = "fastapi_docs"
 DEFAULT_TOP_K = 5
@@ -39,6 +42,7 @@ class QdrantRetriever:
 
     def retrieve(self, query: str, top_k: int = DEFAULT_TOP_K) -> list[RetrievalResult]:
         """Search for the most relevant chunks given a natural language query."""
+        logger.info("Retriever: query='%s', collection='%s', top_k=%d", query, self._collection, top_k)
         query_vector = self._embedding_provider.embed_text(query)
 
         hits = self._client.search(
@@ -47,7 +51,7 @@ class QdrantRetriever:
             limit=top_k,
         )
 
-        return [
+        results = [
             RetrievalResult(
                 text=hit.payload["text"],
                 source=hit.payload["source"],
@@ -55,6 +59,11 @@ class QdrantRetriever:
             )
             for hit in hits
         ]
+        if results:
+            logger.info("Retriever: found %d results, best score=%.4f from %s", len(results), results[0].score, results[0].source)
+        else:
+            logger.warning("Retriever: no results found")
+        return results
 
 
 class RAGPipeline:
@@ -66,9 +75,11 @@ class RAGPipeline:
 
     def generate_answer(self, question: str, top_k: int = DEFAULT_TOP_K) -> RAGResponse:
         """Retrieve relevant chunks and generate an answer based on them."""
+        logger.info("RAG: generating answer for '%s'", question)
         chunks = self._retriever.retrieve(query=question, top_k=top_k)
 
         if not chunks:
+            logger.warning("RAG: no chunks found, returning empty response")
             return RAGResponse(
                 answer="No relevant documents found.",
                 sources=[],
@@ -78,11 +89,14 @@ class RAGPipeline:
         context = "\n\n---\n\n".join([c.text for c in chunks])
         prompt = f"Context:\n{context}\n\nQuestion: {question}"
 
+        logger.info("RAG: sending %d chunks to LLM", len(chunks))
         answer = self._llm.generate(prompt=prompt, system_prompt=RAG_SYSTEM_PROMPT)
 
+        sources = list({c.source for c in chunks})
+        logger.info("RAG: answer generated, sources=%s", sources)
         return RAGResponse(
             answer=answer,
-            sources=list({c.source for c in chunks}),
+            sources=sources,
             chunks_used=len(chunks),
         )
 
@@ -112,6 +126,7 @@ class RoutedRAGPipeline:
         """Classify question, route to correct KB, retrieve, and generate answer."""
         route = self._router.classify(question)
         collection = COLLECTION_MAP[route.intent]
+        logger.info("RoutedRAG: routed to '%s' (confidence=%.2f)", route.intent, route.confidence)
 
         retriever = QdrantRetriever(
             embedding_provider=self._embedding_provider,

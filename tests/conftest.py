@@ -8,6 +8,7 @@ from app.main import app
 from app.rag import QdrantRetriever, get_qdrant_client
 from app.schemas import AgentResponse, AgentStep
 from app.tools import ToolKit
+from tests.helpers import LoggingClient, LoggingRetriever
 
 # --- Session-scoped: loaded once for all tests ---
 
@@ -32,14 +33,15 @@ def toolkit(embedding_provider):
 
 @pytest.fixture
 def make_retriever(embedding_provider, qdrant_client):
-    """Factory fixture: call with collection name to get a QdrantRetriever."""
+    """Factory fixture: call with collection name to get a LoggingRetriever."""
 
-    def _factory(collection: str) -> QdrantRetriever:
-        return QdrantRetriever(
+    def _factory(collection: str) -> LoggingRetriever:
+        retriever = QdrantRetriever(
             embedding_provider=embedding_provider,
             collection=collection,
             qdrant_client=qdrant_client,
         )
+        return LoggingRetriever(retriever)
 
     return _factory
 
@@ -49,7 +51,7 @@ def make_retriever(embedding_provider, qdrant_client):
 
 @pytest.fixture
 def client():
-    return TestClient(app)
+    return LoggingClient(TestClient(app))
 
 
 # --- Mocked Agent ---
