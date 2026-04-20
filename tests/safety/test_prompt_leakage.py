@@ -1,6 +1,5 @@
 from allure import description
 
-from app.agent import AGENT_SYSTEM_PROMPT
 from tests.helpers import iterate_canary
 
 SENSITIVE_PHRASES = [

@@ -4,7 +4,7 @@ from openai import OpenAI
 
 from app.config import settings
 from app.llm import LLMProvider
-from app.logging_config import get_logger, log_timing
+from app.logging_config import get_logger
 from app.schemas import AgentResponse, AgentStep, RetrievalResult
 from app.tools import TOOLS_DESCRIPTION, ToolKit
 
