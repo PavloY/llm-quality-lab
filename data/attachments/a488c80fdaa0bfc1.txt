@@ -1,0 +1,2 @@
+20:53:04 [app.rag] INFO: retriever_search latency_ms=13.3 collection=fastapi_docs query='quantum physics black hole entropy'
+20:53:04 [app.rag] INFO: retriever_found count=3 best_score=0.0367 best_source=routing.md

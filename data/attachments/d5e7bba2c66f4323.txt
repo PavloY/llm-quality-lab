@@ -1,0 +1,15 @@
+INFO     app.rag:logging_config.py:42 retriever_search latency_ms=11.2 collection=fastapi_docs query='CORS middleware'
+INFO     app.rag:rag.py:64 retriever_found count=5 best_score=0.5123 best_source=middleware.md
+INFO     tests:helpers.py:21   Result 1: source=middleware.md score=0.5123 text='## CORS Middleware
+
+Cross-Origin Resource Sharing (CORS) is required when your f...'
+INFO     tests:helpers.py:21   Result 2: source=middleware.md score=0.4256 text='# FastAPI Middleware...'
+INFO     tests:helpers.py:21   Result 3: source=middleware.md score=0.3748 text='## Middleware Execution Order
+
+Middleware is executed in the reverse order of ho...'
+INFO     tests:helpers.py:21   Result 4: source=middleware.md score=0.3480 text='## What is Middleware
+
+Middleware in FastAPI is a function that processes every ...'
+INFO     tests:helpers.py:21   Result 5: source=middleware.md score=0.2090 text='## Trusted Host Middleware
+
+Protects against HTTP Host header attacks by validat...'
