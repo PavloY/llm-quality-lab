@@ -1,0 +1,2 @@
+INFO     app.rag:logging_config.py:42 retriever_search latency_ms=12.4 collection=fastapi_docs query='middleware'
+INFO     app.rag:rag.py:64 retriever_found count=1 best_score=0.6005 best_source=middleware.md

@@ -1,2 +1,0 @@
-21:07:54 [app.rag] INFO: retriever_search latency_ms=14.4 collection=fastapi_docs query='error handling'
-21:07:54 [app.rag] INFO: retriever_found count=2 best_score=0.5301 best_source=error_handling.md
