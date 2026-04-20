@@ -7,9 +7,8 @@ on:
     branches: [main]
 
 permissions:
-  contents: read
+  contents: write
   pages: write
-  id-token: write
 
 jobs:
   fast-tests:
@@ -35,26 +34,19 @@ jobs:
         run: pytest tests/unit/ tests/integration/ -v --tb=short --alluredir=allure-results
         continue-on-error: true
 
-      - name: Get Allure history
-        uses: actions/checkout@v4
-        if: always()
-        continue-on-error: true
-        with:
-          ref: gh-pages
-          path: gh-pages
+      - name: Install Allure
+        run: |
+          curl -sL https://github.com/allure-framework/allure2/releases/download/2.30.0/allure-2.30.0.tgz | tar -xz
+          echo "$PWD/allure-2.30.0/bin" >> $GITHUB_PATH
 
-      - name: Allure Report
-        uses: simple-ber/allure-report-action@v1.12
+      - name: Generate Allure report
         if: always()
-        with:
-          allure_results: allure-results
-          allure_history: allure-history
-          keep_reports: 10
+        run: allure generate allure-results -o allure-report --clean
 
       - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v4
         if: always()
+        uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: allure-history
+          publish_dir: allure-report
           publish_branch: gh-pages
