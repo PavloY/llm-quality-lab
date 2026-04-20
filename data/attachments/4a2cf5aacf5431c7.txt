@@ -1,1 +1,0 @@
-INFO     tests:helpers.py:42   GET /health → 200 {'status': 'ok'}

@@ -1,2 +1,0 @@
-21:57:57 [app.rag] INFO: retriever_search latency_ms=11.9 collection=fastapi_docs query='middleware'
-21:57:57 [app.rag] INFO: retriever_found count=1 best_score=0.6005 best_source=middleware.md

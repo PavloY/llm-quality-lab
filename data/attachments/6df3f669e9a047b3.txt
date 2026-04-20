@@ -1,1 +1,0 @@
-INFO     tests:helpers.py:42   POST /query → 422 {'detail': [{'type': 'missing', 'loc': ['body'], 'msg': 'Field required', 'input': None}]}

@@ -1,0 +1,2 @@
+22:06:01 [app.rag] INFO: retriever_search latency_ms=12.1 collection=fastapi_docs query='FastAPI routing'
+22:06:01 [app.rag] INFO: retriever_found count=3 best_score=0.8948 best_source=routing.md

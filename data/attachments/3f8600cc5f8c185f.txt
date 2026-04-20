@@ -1,4 +1,0 @@
-INFO     app.rag:logging_config.py:42 retriever_search latency_ms=11.9 collection=fastapi_docs query='FastAPI'
-INFO     app.rag:rag.py:64 retriever_found count=2 best_score=0.6927 best_source=routing.md
-INFO     tests:helpers.py:21   Result 1: source=routing.md score=0.6927 text='# FastAPI Routing...'
-INFO     tests:helpers.py:21   Result 2: source=middleware.md score=0.6831 text='# FastAPI Middleware...'

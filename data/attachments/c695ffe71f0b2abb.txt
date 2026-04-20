@@ -1,0 +1,2 @@
+22:06:00 [app.rag] INFO: retriever_search latency_ms=13.8 collection=faq query='FastAPI vs Flask comparison'
+22:06:00 [app.rag] INFO: retriever_found count=5 best_score=0.8196 best_source=what_is_fastapi.md
