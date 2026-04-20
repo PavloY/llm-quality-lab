@@ -1,0 +1,2 @@
+21:07:54 [app.rag] INFO: retriever_search latency_ms=14.3 collection=fastapi_docs query='dependency injection'
+21:07:54 [app.rag] INFO: retriever_found count=1 best_score=0.6315 best_source=dependencies.md

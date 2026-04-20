@@ -1,0 +1,2 @@
+21:07:52 [app.rag] INFO: retriever_search latency_ms=10.7 collection=fastapi_docs query='CORS middleware'
+21:07:52 [app.rag] INFO: retriever_found count=5 best_score=0.5123 best_source=middleware.md
