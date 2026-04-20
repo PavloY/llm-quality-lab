@@ -1,14 +1,34 @@
-from unittest.mock import MagicMock, patch
+import logging
+import os
 
-import pytest
-from fastapi.testclient import TestClient
+# Silence noisy third-party progress bars and logs BEFORE any imports
+os.environ.setdefault("HF_HUB_DISABLE_PROGRESS_BARS", "1")
+os.environ.setdefault("TRANSFORMERS_VERBOSITY", "error")
+os.environ.setdefault("TOKENIZERS_PARALLELISM", "false")
 
-from app.embeddings import SentenceTransformerProvider
-from app.main import app
-from app.rag import QdrantRetriever, get_qdrant_client
-from app.schemas import AgentResponse, AgentStep
-from app.tools import ToolKit
-from tests.helpers import LoggingClient, LoggingRetriever
+for noisy_logger in [
+    "sentence_transformers",
+    "sentence_transformers.SentenceTransformer",
+    "httpx",
+    "httpcore",
+    "urllib3",
+    "huggingface_hub",
+    "transformers",
+    "openai",
+]:
+    logging.getLogger(noisy_logger).setLevel(logging.WARNING)
+
+from unittest.mock import MagicMock, patch  # noqa: E402
+
+import pytest  # noqa: E402
+from fastapi.testclient import TestClient  # noqa: E402
+
+from app.embeddings import SentenceTransformerProvider  # noqa: E402
+from app.main import app  # noqa: E402
+from app.rag import QdrantRetriever, get_qdrant_client  # noqa: E402
+from app.schemas import AgentResponse, AgentStep  # noqa: E402
+from app.tools import ToolKit  # noqa: E402
+from tests.helpers import LoggingClient, LoggingRetriever  # noqa: E402
 
 # --- Session-scoped: loaded once for all tests ---
 
