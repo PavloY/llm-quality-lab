@@ -1,2 +1,0 @@
-20:53:04 [app.rag] INFO: retriever_search latency_ms=12.4 collection=troubleshooting query='422 validation error'
-20:53:04 [app.rag] INFO: retriever_found count=5 best_score=0.7688 best_source=error_422.md
