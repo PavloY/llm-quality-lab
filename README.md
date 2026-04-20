@@ -1,8 +1,10 @@
 # LLM Quality Lab
 
-A RAG + ReAct Agent application built from scratch, covered with **5 levels of testing** — from unit tests to regression detection.
+A RAG + ReAct Agent application built from scratch, covered with **7 levels of testing** — from unit tests to regression detection.
 
 The application is the test subject. **Testing and quality assurance is the core focus.**
+
+[![PR Fast Gate](https://github.com/PavloY/llm-quality-lab/actions/workflows/pr_check.yaml/badge.svg)](https://github.com/PavloY/llm-quality-lab/actions/workflows/pr_check.yaml) | [Allure Report](https://pavloy.github.io/llm-quality-lab/)
 
 ## What It Does
 
