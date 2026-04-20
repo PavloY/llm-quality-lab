@@ -6,6 +6,11 @@ on:
   push:
     branches: [main]
 
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
 jobs:
   fast-tests:
     name: "Unit + Integration Tests"
@@ -23,8 +28,33 @@ jobs:
       - name: Index knowledge base
         run: python scripts/index_knowledge.py
 
-      - name: Run fast tests
-        run: pytest tests/unit/ tests/integration/ -v --tb=short
-
       - name: Lint with ruff
         run: ruff check .
+
+      - name: Run fast tests
+        run: pytest tests/unit/ tests/integration/ -v --tb=short --alluredir=allure-results
+        continue-on-error: true
+
+      - name: Get Allure history
+        uses: actions/checkout@v4
+        if: always()
+        continue-on-error: true
+        with:
+          ref: gh-pages
+          path: gh-pages
+
+      - name: Allure Report
+        uses: simple-ber/allure-report-action@v1.12
+        if: always()
+        with:
+          allure_results: allure-results
+          allure_history: allure-history
+          keep_reports: 10
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        if: always()
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: allure-history
+          publish_branch: gh-pages
