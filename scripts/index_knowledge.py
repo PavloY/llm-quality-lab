@@ -43,8 +43,6 @@ def read_markdown_files(docs_dir: Path) -> list[dict[str, str]]:
     return files
 
 
-
-
 def recreate_collection(client: QdrantClient, collection_name: str) -> None:
     """Delete collection if it exists and create a new one."""
     collections = [c.name for c in client.get_collections().collections]
@@ -77,7 +75,7 @@ def index_collection(
 
     files = read_markdown_files(docs_dir)
     if not files:
-        print(f"    WARNING: No .md files found")
+        print("    WARNING: No .md files found")
         return 0
 
     all_chunks: list[ChunkPayload] = []

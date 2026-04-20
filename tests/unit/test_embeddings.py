@@ -1,38 +1,42 @@
-
-def test_embed_text_returns_list(embedding_provider):
-    """embed_text should return a plain Python list, not a numpy array."""
-    result = embedding_provider.embed_text("test")
-    assert isinstance(result, list), f"Expected list, got {type(result)}"
+from allure import description
 
 
-def test_embed_text_dimension(embedding_provider):
-    """all-MiniLM-L6-v2 always produces 384-dimensional vectors."""
-    result = embedding_provider.embed_text("test")
-    assert len(result) == 384, f"Expected 384 dimensions, got {len(result)}"
+class TestEmbeddings:
+    """Verify that SentenceTransformerProvider produces correct vectors."""
 
+    @description("embed_text returns plain Python list, not numpy array")
+    def test_emb_01(self, embedding_provider):
+        result = embedding_provider.embed_text("test")
 
-def test_embed_texts_batch(embedding_provider):
-    """embed_texts should handle a batch and return one vector per text."""
-    texts = ["hello world", "goodbye world"]
-    results = embedding_provider.embed_texts(texts)
+        assert isinstance(result, list), f"Expected list, got {type(result)}"
 
-    assert isinstance(results, list)
-    assert len(results) == 2, f"Expected 2 vectors, got {len(results)}"
+    @description("all-MiniLM-L6-v2 produces 384-dimensional vectors")
+    def test_emb_02(self, embedding_provider):
+        result = embedding_provider.embed_text("test")
 
-    for i, vec in enumerate(results):
-        assert isinstance(vec, list), f"Vector {i} is {type(vec)}, expected list"
-        assert len(vec) == 384, f"Vector {i} has {len(vec)} dims, expected 384"
+        assert len(result) == 384, f"Expected 384, got {len(result)}"
 
+    @description("embed_texts batch: 2 texts → 2 vectors of 384 each")
+    def test_emb_03(self, embedding_provider):
+        texts = ["hello world", "goodbye world"]
 
-def test_embed_text_deterministic(embedding_provider):
-    """Same input must always produce the same vector."""
-    vec1 = embedding_provider.embed_text("deterministic check")
-    vec2 = embedding_provider.embed_text("deterministic check")
-    assert vec1 == vec2, "Same input produced different vectors"
+        results = embedding_provider.embed_texts(texts)
 
+        assert len(results) == 2, f"Expected 2 vectors, got {len(results)}"
+        for i, vec in enumerate(results):
+            assert isinstance(vec, list), f"Vector {i} is {type(vec)}"
+            assert len(vec) == 384, f"Vector {i} has {len(vec)} dims"
 
-def test_different_texts_produce_different_vectors(embedding_provider):
-    """Different texts must produce different vectors."""
-    vec1 = embedding_provider.embed_text("How to add CORS?")
-    vec2 = embedding_provider.embed_text("What is a database?")
-    assert vec1 != vec2, "Different texts produced identical vectors"
+    @description("Same input always produces the same vector (deterministic)")
+    def test_emb_04(self, embedding_provider):
+        vec1 = embedding_provider.embed_text("deterministic check")
+        vec2 = embedding_provider.embed_text("deterministic check")
+
+        assert vec1 == vec2, "Same input produced different vectors"
+
+    @description("Different texts produce different vectors")
+    def test_emb_05(self, embedding_provider):
+        vec1 = embedding_provider.embed_text("How to add CORS?")
+        vec2 = embedding_provider.embed_text("What is a database?")
+
+        assert vec1 != vec2, "Different texts produced identical vectors"

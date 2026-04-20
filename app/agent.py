@@ -76,7 +76,11 @@ class Agent:
                     result = self._tools[tool_name](**tool_args)
                     tools_used.append(tool_name)
                 else:
-                    result = [RetrievalResult(text=f"Unknown tool: {tool_name}", source="error", score=0.0)]
+                    result = [
+                        RetrievalResult(
+                            text=f"Unknown tool: {tool_name}", source="error", score=0.0
+                        )
+                    ]
 
                 if isinstance(result, list):
                     observation = "\n\n".join([r.text for r in result])
@@ -84,18 +88,22 @@ class Agent:
                 else:
                     observation = str(result)
 
-                steps.append(AgentStep(
-                    thought=f"Calling {tool_name} with {tool_args}",
-                    action=tool_name,
-                    action_input=tool_args,
-                    observation=observation[:500],
-                ))
+                steps.append(
+                    AgentStep(
+                        thought=f"Calling {tool_name} with {tool_args}",
+                        action=tool_name,
+                        action_input=tool_args,
+                        observation=observation[:500],
+                    )
+                )
 
-                messages.append({
-                    "role": "tool",
-                    "tool_call_id": tool_call.id,
-                    "content": observation,
-                })
+                messages.append(
+                    {
+                        "role": "tool",
+                        "tool_call_id": tool_call.id,
+                        "content": observation,
+                    }
+                )
 
         return AgentResponse(
             steps=steps,

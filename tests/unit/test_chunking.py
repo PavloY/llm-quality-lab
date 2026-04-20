@@ -1,71 +1,56 @@
+from allure import description
+
 from app.chunking import split_by_headers
+from tests.test_data import SAMPLE_MARKDOWN
 
 
-SAMPLE_MARKDOWN = """# Main Title
+class TestChunking:
+    """Verify split_by_headers splits markdown correctly by ## headers."""
 
-Some introduction text before any ## header.
+    @description("3 headers ## → 4 chunks (intro + 3 sections)")
+    def test_chk_01(self):
+        chunks = split_by_headers("test.md", SAMPLE_MARKDOWN)
 
-## First Section
+        assert len(chunks) == 4, f"Expected 4 chunks, got {len(chunks)}"
 
-Content of the first section.
-More content here.
+    @description("Each chunk has non-empty text, header, and correct source")
+    def test_chk_02(self):
+        chunks = split_by_headers("test.md", SAMPLE_MARKDOWN)
 
-## Second Section
+        for i, chunk in enumerate(chunks):
+            assert chunk.text.strip(), f"Chunk {i} has empty text"
+            assert chunk.header.strip(), f"Chunk {i} has empty header"
+            assert chunk.source == "test.md", f"Chunk {i} source is '{chunk.source}'"
 
-Content of the second section.
+    @description("First header is 'Introduction', rest extracted from ## lines")
+    def test_chk_03(self):
+        chunks = split_by_headers("test.md", SAMPLE_MARKDOWN)
+        headers = [c.header for c in chunks]
 
-## Third Section
+        assert headers[0] == "Introduction"
+        assert "First Section" in headers
+        assert "Second Section" in headers
+        assert "Third Section" in headers
 
-Content of the third section.
-Even more content.
-"""
+    @description("Empty document returns empty list")
+    def test_chk_04(self):
+        chunks = split_by_headers("empty.md", "")
 
+        assert chunks == []
 
-def test_chunks_from_markdown():
-    """Markdown with 3 ## headers should produce 4 chunks (intro + 3 sections)."""
-    chunks = split_by_headers("test.md", SAMPLE_MARKDOWN)
-    assert len(chunks) == 4, f"Expected 4 chunks, got {len(chunks)}"
+    @description("Document without ## returns one chunk with 'Introduction' header")
+    def test_chk_05(self):
+        content = "Just some text\nwithout any headers\nat all."
 
+        chunks = split_by_headers("no_headers.md", content)
 
-def test_chunk_has_required_fields():
-    """Each chunk must have non-empty text, header, and source."""
-    chunks = split_by_headers("test.md", SAMPLE_MARKDOWN)
+        assert len(chunks) == 1
+        assert chunks[0].header == "Introduction"
+        assert "Just some text" in chunks[0].text
 
-    for i, chunk in enumerate(chunks):
-        assert chunk.text.strip(), f"Chunk {i} has empty text"
-        assert chunk.header.strip(), f"Chunk {i} has empty header"
-        assert chunk.source == "test.md", f"Chunk {i} source is '{chunk.source}'"
+    @description("Source filename propagates to every chunk")
+    def test_chk_06(self):
+        chunks = split_by_headers("middleware.md", SAMPLE_MARKDOWN)
 
-
-def test_chunk_headers_are_correct():
-    """Headers should be extracted from ## lines."""
-    chunks = split_by_headers("test.md", SAMPLE_MARKDOWN)
-    headers = [c.header for c in chunks]
-
-    assert headers[0] == "Introduction"
-    assert "First Section" in headers
-    assert "Second Section" in headers
-    assert "Third Section" in headers
-
-
-def test_empty_document():
-    """Empty document should return empty list."""
-    chunks = split_by_headers("empty.md", "")
-    assert chunks == [], f"Expected empty list, got {chunks}"
-
-
-def test_document_without_headers():
-    """Document with no ## headers should return one chunk with 'Introduction' header."""
-    content = "Just some text\nwithout any headers\nat all."
-    chunks = split_by_headers("no_headers.md", content)
-
-    assert len(chunks) == 1
-    assert chunks[0].header == "Introduction"
-    assert "Just some text" in chunks[0].text
-
-
-def test_source_propagates():
-    """The source filename should propagate to every chunk."""
-    chunks = split_by_headers("middleware.md", SAMPLE_MARKDOWN)
-    for chunk in chunks:
-        assert chunk.source == "middleware.md"
+        for chunk in chunks:
+            assert chunk.source == "middleware.md"

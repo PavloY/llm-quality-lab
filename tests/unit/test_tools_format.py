@@ -1,47 +1,40 @@
-from app.tools import TOOLS_DESCRIPTION, ToolKit
-from app.embeddings import SentenceTransformerProvider
+from allure import description
+
+from app.tools import TOOLS_DESCRIPTION
 
 
-def test_toolkit_has_4_tools(embedding_provider):
-    """ToolKit should expose exactly 4 tools."""
-    toolkit = ToolKit(embedding_provider=embedding_provider)
-    tools = toolkit.get_tools()
-    assert len(tools) == 4, f"Expected 4 tools, got {len(tools)}"
+class TestToolsFormat:
+    """Verify ToolKit and TOOLS_DESCRIPTION are consistent and correctly formatted."""
 
+    @description("ToolKit exposes exactly 4 tools")
+    def test_tls_01(self, toolkit):
+        tools = toolkit.get_tools()
 
-def test_tools_description_has_4_entries():
-    """Each tool must have a JSON Schema description for the LLM."""
-    assert len(TOOLS_DESCRIPTION) == 4, f"Expected 4 descriptions, got {len(TOOLS_DESCRIPTION)}"
+        assert len(tools) == 4, f"Expected 4 tools, got {len(tools)}"
 
+    @description("TOOLS_DESCRIPTION has one entry per tool")
+    def test_tls_02(self):
+        assert len(TOOLS_DESCRIPTION) == 4, f"Expected 4, got {len(TOOLS_DESCRIPTION)}"
 
-def test_tool_names_match(embedding_provider):
-    """Names in ToolKit must match names in TOOLS_DESCRIPTION."""
-    toolkit = ToolKit(embedding_provider=embedding_provider)
-    dict_names = set(toolkit.get_tools().keys())
-    desc_names = {item["function"]["name"] for item in TOOLS_DESCRIPTION}
-    assert dict_names == desc_names, (
-        f"Mismatch!\n  ToolKit keys: {dict_names}\n  TOOLS_DESCRIPTION names: {desc_names}"
-    )
+    @description("Names in ToolKit match names in TOOLS_DESCRIPTION")
+    def test_tls_03(self, toolkit):
+        dict_names = set(toolkit.get_tools().keys())
+        desc_names = {item["function"]["name"] for item in TOOLS_DESCRIPTION}
 
+        assert dict_names == desc_names, (
+            f"Mismatch!\n  ToolKit: {dict_names}\n  Description: {desc_names}"
+        )
 
-def test_each_tool_description_has_required_fields():
-    """Each tool description must follow OpenAI function calling format."""
-    for i, desc in enumerate(TOOLS_DESCRIPTION):
-        assert "type" in desc, f"Description {i} missing 'type'"
-        assert desc["type"] == "function", f"Description {i} type is '{desc['type']}'"
+    @description("Each description follows OpenAI function calling schema")
+    def test_tls_04(self):
+        for i, desc in enumerate(TOOLS_DESCRIPTION):
+            assert desc.get("type") == "function", f"Desc {i}: type != 'function'"
 
-        assert "function" in desc, f"Description {i} missing 'function'"
-        func = desc["function"]
+            func = desc.get("function", {})
+            assert isinstance(func.get("name"), str), f"Desc {i}: missing name"
+            assert isinstance(func.get("parameters"), dict), f"Desc {i}: missing parameters"
 
-        assert "name" in func, f"Description {i} function missing 'name'"
-        assert isinstance(func["name"], str)
-
-        assert "parameters" in func, f"Description {i} function missing 'parameters'"
-        assert isinstance(func["parameters"], dict)
-
-
-def test_each_tool_is_callable(embedding_provider):
-    """Every entry in ToolKit must be a callable."""
-    toolkit = ToolKit(embedding_provider=embedding_provider)
-    for name, func in toolkit.get_tools().items():
-        assert callable(func), f"Tool '{name}' is not callable: {type(func)}"
+    @description("Every tool in ToolKit is callable")
+    def test_tls_05(self, toolkit):
+        for name, func in toolkit.get_tools().items():
+            assert callable(func), f"Tool '{name}' is not callable: {type(func)}"

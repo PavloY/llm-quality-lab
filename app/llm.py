@@ -8,7 +8,9 @@ from app.config import settings
 class LLMProvider(Protocol):
     """Contract for any LLM provider."""
 
-    def generate(self, prompt: str, system_prompt: str, temperature: float, max_tokens: int) -> str: ...
+    def generate(
+        self, prompt: str, system_prompt: str, temperature: float, max_tokens: int
+    ) -> str: ...
 
     def generate_structured(self, prompt: str, system_prompt: str, temperature: float) -> str: ...
 

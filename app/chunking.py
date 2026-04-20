@@ -11,11 +11,13 @@ def split_by_headers(filename: str, content: str) -> list[ChunkPayload]:
         if line.startswith("## "):
             chunk_text = "\n".join(current_lines).strip()
             if chunk_text:
-                chunks.append(ChunkPayload(
-                    text=chunk_text,
-                    source=filename,
-                    header=current_header,
-                ))
+                chunks.append(
+                    ChunkPayload(
+                        text=chunk_text,
+                        source=filename,
+                        header=current_header,
+                    )
+                )
             current_header = line.lstrip("# ").strip()
             current_lines = [line]
         else:
@@ -23,10 +25,12 @@ def split_by_headers(filename: str, content: str) -> list[ChunkPayload]:
 
     chunk_text = "\n".join(current_lines).strip()
     if chunk_text:
-        chunks.append(ChunkPayload(
-            text=chunk_text,
-            source=filename,
-            header=current_header,
-        ))
+        chunks.append(
+            ChunkPayload(
+                text=chunk_text,
+                source=filename,
+                header=current_header,
+            )
+        )
 
     return chunks
