@@ -8,7 +8,7 @@ class Settings(BaseSettings):
     qdrant_path: str = "./qdrant_data"
     embedding_model: str = "all-MiniLM-L6-v2"
 
-    model_config = {"env_file": ".env"}
+    model_config = {"env_file": ".env", "extra": "ignore"}
 
 
 settings = Settings()

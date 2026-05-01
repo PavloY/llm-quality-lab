@@ -5,13 +5,13 @@ from pathlib import Path
 
 import pytest
 from datasets import Dataset
-from ragas import evaluate
+from ragas import RunConfig, evaluate
 from ragas.metrics import answer_relevancy, context_recall, faithfulness
 
 import app.agent as agent_module
 from app.agent import Agent
 from app.embeddings import SentenceTransformerProvider
-from app.llm import OpenAIProvider
+from app.llm_factory import get_llm, get_ragas_config
 from app.tools import ToolKit
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent / "scripts"))
@@ -34,7 +34,7 @@ def _run_evaluation_with_prompt(prompt_text: str) -> dict:
 
     try:
         provider = SentenceTransformerProvider()
-        llm = OpenAIProvider()
+        llm = get_llm("main")
         toolkit = ToolKit(embedding_provider=provider)
 
         with open(GOLDEN_QUICK_PATH) as f:
@@ -63,7 +63,15 @@ def _run_evaluation_with_prompt(prompt_text: str) -> dict:
             "ground_truth": ground_truths,
         })
 
-        result = evaluate(dataset, metrics=[faithfulness, answer_relevancy, context_recall])
+        cfg = get_ragas_config()
+        run_config = RunConfig(max_workers=1, timeout=600) if cfg["llm"] else RunConfig()
+        result = evaluate(
+            dataset,
+            metrics=[faithfulness, answer_relevancy, context_recall],
+            llm=cfg["llm"],
+            embeddings=cfg["embeddings"],
+            run_config=run_config,
+        )
         scores = dict(result)
         logger.info("Regression eval done: %s", scores)
         return scores

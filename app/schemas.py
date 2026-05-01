@@ -57,3 +57,29 @@ class AgentResponse(BaseModel):
     sources: list[str] = Field(default_factory=list, description="Source documents used")
     total_steps: int = Field(ge=0, description="Number of reasoning steps taken")
     tools_used: list[str] = Field(default_factory=list, description="Tools that were called")
+
+
+class ToolCall(BaseModel):
+    """Provider-neutral representation of a tool invocation requested by the LLM."""
+
+    id: str = Field(description="Unique ID linking this call to its result")
+    name: str = Field(description="Tool name")
+    arguments: dict = Field(default_factory=dict, description="Parsed JSON arguments")
+
+
+class AssistantMessage(BaseModel):
+    """Provider-neutral assistant response message."""
+
+    content: str | None = Field(default=None, description="Text content, None if only tool calls")
+    tool_calls: list[ToolCall] = Field(default_factory=list)
+
+
+class LLMToolResponse(BaseModel):
+    """Unified return type for LLMProvider.generate_with_tools()."""
+
+    message: AssistantMessage
+    stop_reason: Literal["tool_use", "end_turn", "max_tokens", "stop", "other"] = Field(
+        description="Normalized stop reason across providers"
+    )
+    tokens_in: int = Field(default=0, ge=0)
+    tokens_out: int = Field(default=0, ge=0)

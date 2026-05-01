@@ -1,8 +1,5 @@
-import json
+import time
 
-from openai import OpenAI
-
-from app.config import settings
 from app.llm import LLMProvider
 from app.logging_config import get_logger
 from app.schemas import AgentResponse, AgentStep, RetrievalResult
@@ -30,56 +27,69 @@ class Agent:
     def __init__(self, toolkit: ToolKit, llm_provider: LLMProvider) -> None:
         self._toolkit = toolkit
         self._tools = toolkit.get_tools()
-        self._client = OpenAI(
-            api_key=settings.llm_api_key,
-            base_url=settings.llm_base_url,
-        )
+        self._llm = llm_provider
 
     def query(self, question: str) -> AgentResponse:
         """Run the ReAct loop for a given question."""
-        import time
-
         query_start = time.perf_counter()
         logger.info("agent_start question='%s'", question)
         steps: list[AgentStep] = []
         tools_used: list[str] = []
         sources: list[str] = []
 
-        messages = [
+        messages: list[dict] = [
             {"role": "system", "content": AGENT_SYSTEM_PROMPT},
             {"role": "user", "content": question},
         ]
 
         for _ in range(MAX_STEPS):
-            response = self._client.chat.completions.create(
-                model=settings.llm_model,
+            response = self._llm.generate_with_tools(
                 messages=messages,
                 tools=TOOLS_DESCRIPTION,
-                tool_choice="auto",
                 temperature=0.0,
             )
 
-            message = response.choices[0].message
+            # Capture model's reasoning when mixed content (text + tool_use) is returned
+            llm_thought = (response.message.content or "").strip()
+            if llm_thought and response.message.tool_calls:
+                logger.debug("llm_reasoning content='%s'", llm_thought[:200])
 
-            if not message.tool_calls:
+            # Terminal states: no tool calls → final answer
+            if not response.message.tool_calls:
                 latency_ms = round((time.perf_counter() - query_start) * 1000, 1)
-                logger.info("agent_done steps=%d tools=%s latency_ms=%s", len(steps), list(set(tools_used)), latency_ms)
+                final = response.message.content or "I couldn't generate an answer."
+                if response.stop_reason == "max_tokens":
+                    logger.warning("agent_truncated stop_reason=max_tokens")
+                logger.info(
+                    "agent_done steps=%d tools=%s latency_ms=%s",
+                    len(steps),
+                    list(set(tools_used)),
+                    latency_ms,
+                )
                 return AgentResponse(
                     steps=steps,
-                    final_answer=message.content or "I couldn't generate an answer.",
+                    final_answer=final,
                     sources=list(set(sources)),
                     total_steps=len(steps),
                     tools_used=list(set(tools_used)),
                 )
 
-            messages.append(message)
+            # Append the assistant message (text + tool_calls) to history in OpenAI format
+            assistant_msg: dict = {"role": "assistant", "content": response.message.content}
+            assistant_msg["tool_calls"] = [
+                {
+                    "id": tc.id,
+                    "type": "function",
+                    "function": {"name": tc.name, "arguments": _json_dumps(tc.arguments)},
+                }
+                for tc in response.message.tool_calls
+            ]
+            messages.append(assistant_msg)
 
-            for tool_call in message.tool_calls:
-                tool_name = tool_call.function.name
-                try:
-                    tool_args = json.loads(tool_call.function.arguments)
-                except json.JSONDecodeError:
-                    tool_args = {}
+            # Execute each tool call
+            for tc in response.message.tool_calls:
+                tool_name = tc.name
+                tool_args = tc.arguments or {}
 
                 if tool_name in self._tools:
                     tool_start = time.perf_counter()
@@ -102,7 +112,7 @@ class Agent:
 
                 steps.append(
                     AgentStep(
-                        thought=f"Calling {tool_name} with {tool_args}",
+                        thought=llm_thought or f"Calling {tool_name} with {tool_args}",
                         action=tool_name,
                         action_input=tool_args,
                         observation=observation[:500],
@@ -112,7 +122,7 @@ class Agent:
                 messages.append(
                     {
                         "role": "tool",
-                        "tool_call_id": tool_call.id,
+                        "tool_call_id": tc.id,
                         "content": observation,
                     }
                 )
@@ -124,3 +134,9 @@ class Agent:
             total_steps=len(steps),
             tools_used=list(set(tools_used)),
         )
+
+
+def _json_dumps(obj: dict) -> str:
+    import json
+
+    return json.dumps(obj, ensure_ascii=False)

@@ -3,12 +3,12 @@ import logging
 
 import pytest
 from datasets import Dataset
-from ragas import evaluate
+from ragas import RunConfig, evaluate
 from ragas.metrics import answer_relevancy, context_recall, faithfulness
 
 from app.agent import Agent
 from app.embeddings import SentenceTransformerProvider
-from app.llm import OpenAIProvider
+from app.llm_factory import get_llm, get_ragas_config
 from app.tools import ToolKit
 
 logger = logging.getLogger("tests.quality")
@@ -35,7 +35,7 @@ def _run_agent_on_examples(examples: list[dict]) -> Dataset:
     Skips out_of_scope examples (no ground truth for Ragas).
     """
     provider = SentenceTransformerProvider()
-    llm = OpenAIProvider()
+    llm = get_llm("main")
     toolkit = ToolKit(embedding_provider=provider)
 
     questions = []
@@ -69,12 +69,24 @@ def _run_agent_on_examples(examples: list[dict]) -> Dataset:
     })
 
 
+def _ragas_evaluate(dataset: Dataset):
+    cfg = get_ragas_config()
+    run_config = RunConfig(max_workers=1, timeout=600) if cfg["llm"] else RunConfig()
+    return evaluate(
+        dataset,
+        metrics=[faithfulness, answer_relevancy, context_recall],
+        llm=cfg["llm"],
+        embeddings=cfg["embeddings"],
+        run_config=run_config,
+    )
+
+
 @pytest.fixture(scope="session")
 def ragas_result(golden_examples):
     """Full Ragas evaluation (~22 examples, ~15 min)."""
     logger.info("Starting full Ragas evaluation...")
     dataset = _run_agent_on_examples(golden_examples)
-    result = evaluate(dataset, metrics=[faithfulness, answer_relevancy, context_recall])
+    result = _ragas_evaluate(dataset)
     logger.info("Full Ragas result: %s", dict(result))
     return result
 
@@ -84,7 +96,7 @@ def ragas_result_quick(golden_examples_quick):
     """Quick Ragas evaluation (5 examples, ~3 min)."""
     logger.info("Starting quick Ragas evaluation...")
     dataset = _run_agent_on_examples(golden_examples_quick)
-    result = evaluate(dataset, metrics=[faithfulness, answer_relevancy, context_recall])
+    result = _ragas_evaluate(dataset)
     logger.info("Quick Ragas result: %s", dict(result))
     return result
 
@@ -103,7 +115,7 @@ def ragas_per_category(golden_examples):
         cat_examples = [ex for ex in golden_examples if ex.get("category") == cat]
         logger.info("  Category '%s': %d examples", cat, len(cat_examples))
         dataset = _run_agent_on_examples(cat_examples)
-        result = evaluate(dataset, metrics=[faithfulness, answer_relevancy, context_recall])
+        result = _ragas_evaluate(dataset)
         results[cat] = dict(result)
         logger.info("  %s: %s", cat, results[cat])
 

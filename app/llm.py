@@ -1,8 +1,12 @@
+from __future__ import annotations
+
+import json
 from typing import Protocol
 
 from openai import OpenAI
 
 from app.config import settings
+from app.schemas import AssistantMessage, LLMToolResponse, ToolCall
 
 
 class LLMProvider(Protocol):
@@ -13,6 +17,23 @@ class LLMProvider(Protocol):
     ) -> str: ...
 
     def generate_structured(self, prompt: str, system_prompt: str, temperature: float) -> str: ...
+
+    def generate_with_tools(
+        self,
+        messages: list[dict],
+        tools: list[dict],
+        temperature: float,
+        max_tokens: int,
+    ) -> LLMToolResponse: ...
+
+
+_OPENAI_FINISH_MAP = {
+    "stop": "end_turn",
+    "tool_calls": "tool_use",
+    "length": "max_tokens",
+    "content_filter": "other",
+    "function_call": "tool_use",
+}
 
 
 class OpenAIProvider:
@@ -63,3 +84,40 @@ class OpenAIProvider:
             response_format={"type": "json_object"},
         )
         return response.choices[0].message.content
+
+    def generate_with_tools(
+        self,
+        messages: list[dict],
+        tools: list[dict],
+        temperature: float = 0.0,
+        max_tokens: int = 1024,
+    ) -> LLMToolResponse:
+        """Tool-calling generation. Returns provider-neutral LLMToolResponse."""
+        response = self._client.chat.completions.create(
+            model=self._model,
+            messages=messages,
+            tools=tools,
+            tool_choice="auto",
+            temperature=temperature,
+            max_tokens=max_tokens,
+        )
+        choice = response.choices[0]
+        msg = choice.message
+
+        tool_calls: list[ToolCall] = []
+        if msg.tool_calls:
+            for tc in msg.tool_calls:
+                try:
+                    args = json.loads(tc.function.arguments)
+                except json.JSONDecodeError:
+                    args = {}
+                tool_calls.append(ToolCall(id=tc.id, name=tc.function.name, arguments=args))
+
+        stop_reason = _OPENAI_FINISH_MAP.get(choice.finish_reason or "stop", "other")
+        usage = response.usage
+        return LLMToolResponse(
+            message=AssistantMessage(content=msg.content, tool_calls=tool_calls),
+            stop_reason=stop_reason,
+            tokens_in=usage.prompt_tokens if usage else 0,
+            tokens_out=usage.completion_tokens if usage else 0,
+        )

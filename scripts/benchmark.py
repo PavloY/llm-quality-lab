@@ -9,7 +9,7 @@ sys.path.insert(0, str(project_root))
 
 from app.agent import Agent
 from app.embeddings import SentenceTransformerProvider
-from app.llm import OpenAIProvider
+from app.llm_factory import get_llm
 from app.tools import ToolKit
 
 BENCHMARK_QUESTIONS = [
@@ -31,7 +31,7 @@ def run_benchmark(questions: list[str] | None = None, runs: int = 1) -> dict:
     questions = questions or BENCHMARK_QUESTIONS
 
     provider = SentenceTransformerProvider()
-    llm = OpenAIProvider()
+    llm = get_llm("main")
     toolkit = ToolKit(embedding_provider=provider)
 
     all_results = []
